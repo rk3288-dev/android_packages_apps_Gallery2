@@ -38,6 +38,10 @@ public class ImageFilterBorder extends ImageFilter {
         mName = "Border";
     }
 
+    public HashMap<Integer, Drawable> getDrawables() {
+        return mDrawables;
+    }
+
     public void useRepresentation(FilterRepresentation representation) {
         FilterImageBorderRepresentation parameters = (FilterImageBorderRepresentation) representation;
         mParameters = parameters;

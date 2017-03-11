@@ -66,6 +66,10 @@ public class HighresRenderingRequestTask extends ProcessingTask {
         postRequest(render);
     }
 
+    public CachingPipeline getHighresPreviewPipeline() {
+        return mHighresPreviewPipeline;
+    }
+
     @Override
     public Result doInBackground(Request message) {
         RenderingRequest request = ((Render) message).request;

@@ -25,6 +25,10 @@ public class FullresRenderingRequestTask extends ProcessingTask {
                 FiltersManager.getHighresManager(), "Fullres");
     }
 
+    public CachingPipeline getFullresPipeline() {
+        return mFullresPipeline;
+    }
+
     public void setOriginal(Bitmap bitmap) {
         mFullresPipeline.setOriginal(bitmap);
         mPipelineIsOn = true;

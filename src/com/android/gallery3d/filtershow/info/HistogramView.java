@@ -74,8 +74,10 @@ public class HistogramView extends View {
     }
 
     public void setBitmap(Bitmap bitmap) {
-        mBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
-        new ComputeHistogramTask().execute(mBitmap);
+        if(null != bitmap){
+            mBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+            new ComputeHistogramTask().execute(mBitmap);
+        }
     }
 
     private void drawHistogram(Canvas canvas, int[] histogram, int color, PorterDuff.Mode mode) {

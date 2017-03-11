@@ -19,9 +19,12 @@ package com.android.gallery3d.filtershow.crop;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.WallpaperManager;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
@@ -35,6 +38,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Images;
+import android.provider.MediaStore.Images.Media;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -49,10 +54,25 @@ import com.android.gallery3d.filtershow.tools.SaveImage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+
+
+
+
+// $_rbox_$_modify_$_chengmingchuan_$20140225
+// $_rbox_$_modify_$_begin
+import android.view.KeyEvent;
+import android.os.Environment;
+
+import com.android.gallery3d.ui.GLRoot;
+// $_rbox_$_modify_$_end
+
 
 /**
  * Activity for cropping an image.
@@ -83,7 +103,7 @@ public class CropActivity extends Activity {
      * sure the intent stays below 1MB.We should consider just returning a byte
      * array instead of a Bitmap instance to avoid overhead.
      */
-    public static final int MAX_BMAP_IN_INTENT = 750000;
+    public static final int MAX_BMAP_IN_INTENT = 500000;
 
     // Flags
     private static final int DO_SET_WALLPAPER = 1;
@@ -91,6 +111,29 @@ public class CropActivity extends Activity {
     private static final int DO_EXTRA_OUTPUT = 1 << 2;
 
     private static final int FLAG_CHECK = DO_SET_WALLPAPER | DO_RETURN_DATA | DO_EXTRA_OUTPUT;
+
+	// $_rbox_$_modify_$_chengmingchuan_$_20140225_$_[Info: Handle Keycode]
+    // $_rbox_$_modify_$_begin
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if(KeyEvent.KEYCODE_BACK==keyCode){
+			this.onBackPressed();
+			return true;
+	 	}
+
+		switch(keyCode){
+			case KeyEvent.KEYCODE_DPAD_CENTER: 
+			case KeyEvent.KEYCODE_ENTER:
+				startFinishOutput();
+				return true;
+			default:
+				break;
+	 	}
+		return mCropView.onKeyDown(keyCode, event);
+
+    }
+    // $_rbox_$_modify_$_end
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -416,12 +459,50 @@ public class CropActivity extends Activity {
                 regenerateInputStream();
             }
         }
+        
+        public void saveMyBitmap(Bitmap mBitmap ,Uri mUri) throws Exception {
+        	String savePath = null;
+        	String[] mCols = new String[] {
+            		MediaStore.Images.Media._ID,
+            		MediaStore.Images.Media.DATA
+            };
+            Cursor cur = getApplicationContext().getContentResolver().query(mUri, mCols, null, null, null);
+            if(cur != null){
+            	if(cur.moveToFirst()){
+            		savePath = cur.getString(1);
+            	}
+            	cur.close();
+            	cur = null;
+            }
+            if(savePath == null){
+            	throw new Exception();
+            }
+            File f = new File(savePath);
+            if(!f.exists())
+            	f.createNewFile();
+            FileOutputStream fOut = null;
+            try {
+                    fOut = new FileOutputStream(f);
+            } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+            }
+            mBitmap.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+            try {
+                    fOut.flush();
+            } catch (IOException e) {
+                    e.printStackTrace();
+            }
+            try {
+                    fOut.close();
+            } catch (IOException e) {
+                    e.printStackTrace();
+            }
+    	}
 
         @Override
         protected Boolean doInBackground(Bitmap... params) {
             boolean failure = false;
             Bitmap img = params[0];
-
             // Set extra for crop bounds
             if (mCrop != null && mPhoto != null && mOrig != null) {
                 RectF trueCrop = CropMath.getScaledCropBounds(mCrop, mPhoto, mOrig);
@@ -455,6 +536,7 @@ public class CropActivity extends Activity {
                             ret = tmp;
                         }
                     }
+                    Log.d(LOGTAG,"==Find the small cropped bitmap that is returned in the intent==size:"+CropMath.getBitmapSize(ret));
                     mResultIntent.putExtra(CropExtras.KEY_DATA, ret);
                 }
             }
@@ -539,6 +621,7 @@ public class CropActivity extends Activity {
                         crop = tmp;
                     }
                 }
+                
                 // Get output compression format
                 CompressFormat cf =
                         convertExtensionToCompressFormat(getFileExtension(mOutputFormat));
@@ -548,9 +631,35 @@ public class CropActivity extends Activity {
                     if (mOutStream == null
                             || !crop.compress(cf, DEFAULT_COMPRESS_QUALITY, mOutStream)) {
                         Log.w(LOGTAG, "failed to compress bitmap to file: " + mOutUri.toString());
-                        failure = true;
+                        if(mOutStream == null){
+                        	try{
+                            	saveMyBitmap(crop,mOutUri);
+                            }catch(Exception e){
+                            	e.printStackTrace();
+                            	failure = true;
+                            }
+                        }else{
+                        	failure = true;
+                        }
                     } else {
                         mResultIntent.setData(mOutUri);
+                        ContentResolver cr =getContentResolver();  
+			String path = null;
+			Cursor cursor = cr.query(mOutUri, null, null, null,null);
+			if (cursor != null) {
+				cursor.moveToFirst();
+				int col=cursor.getColumnIndex("_data");
+				if(col>=0){
+					path = cursor.getString(cursor.getColumnIndex("_data"));
+				}
+				cursor.close();
+			}
+			ContentValues values = new ContentValues();
+			if (path != null) {
+				File f = new File(path);
+				values.put(Images.Media.SIZE, f.length());
+				getContentResolver().update(mOutUri, values, null, null);
+                        }
                     }
                 } else {
                     // Compress to byte array
@@ -563,7 +672,16 @@ public class CropActivity extends Activity {
                             if (mOutStream == null) {
                                 Log.w(LOGTAG,
                                         "failed to compress bitmap to file: " + mOutUri.toString());
-                                failure = true;
+                                if(mOutStream == null){
+                                	try{
+                                    	saveMyBitmap(crop,mOutUri);
+                                    }catch(Exception e){
+                                    	e.printStackTrace();
+                                    	failure = true;
+                                    }
+                                }else{
+                                	failure = true;
+                                }
                             } else {
                                 try {
                                     mOutStream.write(tmpOut.toByteArray());
@@ -641,6 +759,7 @@ public class CropActivity extends Activity {
         if (ret == null) {
             return null;
         }
+     //    Log.d(LOGTAG,"==getDownsampledBitmap==CropMath.getBitmapSize(ret):"+CropMath.getBitmapSize(ret));
         // Handle edge case for rounding.
         if (CropMath.getBitmapSize(ret) > max_size) {
             return Bitmap.createScaledBitmap(ret, ret.getWidth() >> 1, ret.getHeight() >> 1, true);

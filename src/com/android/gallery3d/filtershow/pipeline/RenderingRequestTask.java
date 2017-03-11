@@ -28,6 +28,10 @@ public class RenderingRequestTask extends ProcessingTask {
         mPreviewPipeline.setPreviewScaleFactor(previewScale);
     }
 
+    public CachingPipeline getPreviewPipeline() {
+        return mPreviewPipeline;
+    }
+
     static class Render implements Request {
         RenderingRequest request;
     }

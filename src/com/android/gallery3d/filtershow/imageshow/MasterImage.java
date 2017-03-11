@@ -25,6 +25,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
+import android.util.Log;
 
 import com.android.gallery3d.exif.ExifTag;
 import com.android.gallery3d.filtershow.FilterShowActivity;
@@ -330,10 +331,14 @@ public class MasterImage implements RenderingRequestCaller {
     }
 
     public Bitmap getFilteredImage() {
-        mPreviewBuffer.swapConsumerIfNeeded(); // get latest bitmap
-        Buffer consumer = mPreviewBuffer.getConsumer();
-        if (consumer != null) {
-            return consumer.getBitmap();
+        try {
+            mPreviewBuffer.swapConsumerIfNeeded(); // get latest bitmap
+            Buffer consumer = mPreviewBuffer.getConsumer();
+            if (consumer != null) {
+                return consumer.getBitmap();
+            }
+        }catch (NullPointerException e){
+            Log.e(LOGTAG,"error happen: getfiltered null");
         }
         return null;
     }
@@ -406,6 +411,53 @@ public class MasterImage implements RenderingRequestCaller {
     public void resetAnimBitmap() {
         mBitmapCache.cache(mPreviousImage);
         mPreviousImage = null;
+    }
+
+    public void recycle(){
+        if (null != mOriginalBitmapSmall){
+            mOriginalBitmapSmall.recycle();
+            mOriginalBitmapSmall = null;
+        }
+        if (null != mOriginalBitmapLarge){
+            mOriginalBitmapLarge.recycle();
+            mOriginalBitmapLarge = null;
+        }
+        if (null != mOriginalBitmapHighres){
+            mOriginalBitmapHighres.recycle();
+            mOriginalBitmapHighres = null;
+        }
+        if (null != mTemporaryThumbnail){
+            mTemporaryThumbnail.recycle();
+            mTemporaryThumbnail = null;
+        }
+        if (null != mFiltersOnlyBitmap){
+            mFiltersOnlyBitmap.recycle();
+            mFiltersOnlyBitmap = null;
+        }
+        if (null != mGeometryOnlyBitmap) {
+            mGeometryOnlyBitmap.recycle();
+            mGeometryOnlyBitmap = null;
+        }
+        if (null != mPartialBitmap){
+            mPartialBitmap.recycle();
+            mPartialBitmap = null;
+        }
+        if (null != mHighresBitmap) {
+            mHighresBitmap.recycle();
+            mHighresBitmap = null;
+        }
+        if (null != mPreviousImage){
+            mPreviousImage.recycle();
+            mPreviousImage = null;
+        }
+        if (null != mPreviewBuffer) {
+            try {
+                mPreviewBuffer.getProducer().getBitmap().recycle();
+            }catch (NullPointerException e){
+
+            }
+            mPreviewBuffer = null;
+        }
     }
 
     public void onNewLook(FilterRepresentation newRepresentation) {
@@ -543,14 +595,17 @@ public class MasterImage implements RenderingRequestCaller {
         if (mPreset == null) {
             return;
         }
-
-        mPreviewPreset.enqueuePreset(mPreset);
-        mPreviewBuffer.invalidate();
-        invalidatePartialPreview();
-        invalidateHighresPreview();
-        needsUpdatePartialPreview();
-        needsUpdateHighResPreview();
-        mActivity.getProcessingService().updatePreviewBuffer();
+        try {
+            mPreviewPreset.enqueuePreset(mPreset);
+            mPreviewBuffer.invalidate();
+            invalidatePartialPreview();
+            invalidateHighresPreview();
+            needsUpdatePartialPreview();
+            needsUpdateHighResPreview();
+            mActivity.getProcessingService().updatePreviewBuffer();
+        }catch (NullPointerException e){
+            Log.e(LOGTAG,"error happen: some variable is null "+e.getMessage());
+        }
     }
 
     public void setImageShowSize(int w, int h) {
@@ -582,7 +637,7 @@ public class MasterImage implements RenderingRequestCaller {
         float translateX = 0;
         float translateY = 0;
 
-        if (applyGeometry) {
+        if (applyGeometry && mPreset != null) {
             GeometryMathUtils.GeometryHolder holder = GeometryMathUtils.unpackGeometry(
                     mPreset.getGeometryFilters());
             m = GeometryMathUtils.getCropSelectionToScreenMatrix(null, holder,

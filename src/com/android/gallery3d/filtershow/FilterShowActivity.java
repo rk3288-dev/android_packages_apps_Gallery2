@@ -134,7 +134,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
 
     private String mAction = "";
     MasterImage mMasterImage = null;
-
     private static final long LIMIT_SUPPORTS_HIGHRES = 134217728; // 128Mb
 
     public static final String TINY_PLANET_ACTION = "com.android.camera.action.TINY_PLANET";
@@ -273,7 +272,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         boolean onlyUsePortrait = getResources().getBoolean(R.bool.only_use_portrait);
         if (onlyUsePortrait) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -347,20 +345,26 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
 
     private void loadXML() {
         setContentView(R.layout.filtershow_activity);
-
         ActionBar actionBar = getActionBar();
-        actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
-        actionBar.setCustomView(R.layout.filtershow_actionbar);
-        actionBar.setBackgroundDrawable(new ColorDrawable(
-                getResources().getColor(R.color.background_screen)));
+		if(actionBar!=	null)
+		{
+	        actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+	        actionBar.setCustomView(R.layout.filtershow_actionbar);
+	        actionBar.setBackgroundDrawable(new ColorDrawable(
+	                getResources().getColor(R.color.background_screen)));
 
-        mSaveButton = actionBar.getCustomView();
-        mSaveButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                saveImage();
-            }
-        });
+	        mSaveButton = actionBar.getCustomView();
+	        mSaveButton.setOnClickListener(new OnClickListener() {
+	            @Override
+	            public void onClick(View view) {
+	                saveImage();
+	            }
+	        });
+		}
+		else
+		{
+			Log.d(LOGTAG,"actionBar is NULL...");
+		}
 
         mImageShow = (ImageShow) findViewById(R.id.imageShow);
         mImageViews.add(mImageShow);
@@ -572,7 +576,10 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
         }
         mCategoryBordersAdapter = new CategoryAdapter(this);
         for (FilterRepresentation representation : borders) {
-            if (representation.getTextId() != 0) {
+        	String name = representation.getSerializationName();
+        	if(name != null && !name.trim().equals("")){
+        		representation.setName(name);
+        	}else if (representation.getTextId() != 0) {
                 representation.setName(getString(representation.getTextId()));
             }
             mCategoryBordersAdapter.add(new Action(this, representation, Action.FULL_VIEW));
@@ -655,6 +662,9 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
     }
 
     public void showRepresentation(FilterRepresentation representation) {
+    	if(mLoadingVisible){
+    		return;
+    	}
         if (representation == null) {
             return;
         }
@@ -902,6 +912,25 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
         }
         mUserPresetsManager.close();
         doUnbindService();
+        if (null != mMasterImage){
+            mMasterImage.recycle();
+        }
+        if (mActions != null && mActions.size() > 0) {
+            for (Action a:mActions) {
+                if (a.getPortraitImage() != null) {
+                    a.getPortraitImage().recycle();
+                }
+                if (a.getOverlayBitmap() != null) {
+                    a.getOverlayBitmap().recycle();
+                }
+                if (a.getImage() != null) {
+                    a.getImage().recycle();
+                }
+            }
+        }
+        if (mCurrentEditor != null && mCurrentEditor.getTopLevelView() != null) {
+            mCurrentEditor.getTopLevelView().destroyDrawingCache();
+        }
         super.onDestroy();
     }
 
@@ -1036,18 +1065,30 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.undoButton: {
-                HistoryManager adapter = mMasterImage.getHistory();
-                int position = adapter.undo();
-                mMasterImage.onHistoryItemClick(position);
-                backToMain();
-                invalidateViews();
+                try {
+                    HistoryManager adapter = mMasterImage.getHistory();
+                    int position = adapter.undo();
+                    mMasterImage.onHistoryItemClick(position);
+                    backToMain();
+                    invalidateViews();
+                } catch (NullPointerException e){
+                    Log.e(LOGTAG,"error happen: mMasterImage maybe null when select undoButton");
+                } catch (ArrayIndexOutOfBoundsException e2){
+                    Log.e(LOGTAG,"error happen: click position but OutOfBounds when select undoButton");
+                }
                 return true;
             }
             case R.id.redoButton: {
-                HistoryManager adapter = mMasterImage.getHistory();
-                int position = adapter.redo();
-                mMasterImage.onHistoryItemClick(position);
-                invalidateViews();
+                try {
+                    HistoryManager adapter = mMasterImage.getHistory();
+                    int position = adapter.redo();
+                    mMasterImage.onHistoryItemClick(position);
+                    invalidateViews();
+                } catch (NullPointerException e){
+                    Log.e(LOGTAG,"error happen: mMasterImage maybe null when select redoButton");
+                } catch (ArrayIndexOutOfBoundsException e2){
+                    Log.e(LOGTAG,"error happen: click position but OutOfBounds when select redoButton");
+                }
                 return true;
             }
             case R.id.resetHistoryButton: {
@@ -1290,6 +1331,9 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
     }
 
     void resetHistory() {
+        if(null == mMasterImage){
+            return;
+        }
         HistoryManager adapter = mMasterImage.getHistory();
         adapter.reset();
         HistoryItem historyItem = adapter.getItem(0);
@@ -1309,8 +1353,14 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
     }
 
     public void showDefaultImageView() {
-        mEditorPlaceHolder.hide();
-        mImageShow.setVisibility(View.VISIBLE);
+        try {
+            mEditorPlaceHolder.hide();
+        }catch (NullPointerException e){
+            Log.e(LOGTAG,"error happen: is null in mEditorPlaceHolder.hide");
+        }
+        if(null != mImageShow){
+            mImageShow.setVisibility(View.VISIBLE);
+        }
         MasterImage.getImage().setCurrentFilter(null);
         MasterImage.getImage().setCurrentFilterRepresentation(null);
     }

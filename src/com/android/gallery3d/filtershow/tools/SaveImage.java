@@ -247,7 +247,7 @@ public class SaveImage {
         if (mimeType == null) {
             mimeType = ImageLoader.getMimeType(mSelectedImageUri);
         }
-        if (mimeType.equals(ImageLoader.JPEG_MIME_TYPE)) {
+//        if (mimeType.equals(ImageLoader.JPEG_MIME_TYPE)) {
             InputStream inStream = null;
             try {
                 inStream = mContext.getContentResolver().openInputStream(source);
@@ -259,7 +259,9 @@ public class SaveImage {
             } finally {
                 Utils.closeSilently(inStream);
             }
-        }
+//        }else{
+//        	return null;
+//        }
         return exif;
     }
 
@@ -347,7 +349,7 @@ public class SaveImage {
         // If no file is moved, newSourceUri will be the same as mSourceUri.
         Uri newSourceUri = mSourceUri;
         if (!flatten) {
-            newSourceUri = moveSrcToAuxIfNeeded(mSourceUri, mDestinationFile);
+           // newSourceUri = moveSrcToAuxIfNeeded(mSourceUri, mDestinationFile);
         }
 
         Uri savedUri = mSelectedImageUri;
@@ -356,8 +358,10 @@ public class SaveImage {
                 Object xmp = getPanoramaXMPData(newSourceUri, preset);
                 ExifInterface exif = getExifData(newSourceUri);
                 long time = System.currentTimeMillis();
-                updateExifData(exif, time);
-                if (putExifData(mDestinationFile, exif, mPreviewImage, quality)) {
+                if(exif != null){
+                	updateExifData(exif, time);
+                }
+                if (exif == null || putExifData(mDestinationFile, exif, mPreviewImage, quality)) {
                     putPanoramaXMPData(mDestinationFile, xmp);
                     ContentValues values = getContentValues(mContext, mSelectedImageUri, mDestinationFile, time);
                     Object result = mContext.getContentResolver().insert(
@@ -368,9 +372,11 @@ public class SaveImage {
                 Object xmp = getPanoramaXMPData(newSourceUri, preset);
                 ExifInterface exif = getExifData(newSourceUri);
                 long time = System.currentTimeMillis();
-                updateExifData(exif, time);
+                if(exif != null){
+                	updateExifData(exif, time);
+                }
                 // If we succeed in writing the bitmap as a jpeg, return a uri.
-                if (putExifData(mDestinationFile, exif, mPreviewImage, quality)) {
+                if (exif == null || putExifData(mDestinationFile, exif, mPreviewImage, quality)) {
                     putPanoramaXMPData(mDestinationFile, xmp);
                     // mDestinationFile will save the newSourceUri info in the XMP.
                     if (!flatten) {
@@ -380,7 +386,7 @@ public class SaveImage {
                     // After this call, mSelectedImageUri will be actually
                     // pointing at the new file mDestinationFile.
                     savedUri = SaveImage.linkNewFileToUri(mContext, mSelectedImageUri,
-                            mDestinationFile, time, !flatten);
+                            mDestinationFile, time, false);
                 }
             }
             if (mCallback != null) {
@@ -420,11 +426,13 @@ public class SaveImage {
                 long time = System.currentTimeMillis();
                 updateProgress();
 
-                updateExifData(exif, time);
+                if(exif != null){
+                	updateExifData(exif, time);
+                }
                 updateProgress();
 
                 // If we succeed in writing the bitmap as a jpeg, return a uri.
-                if (putExifData(mDestinationFile, exif, bitmap, quality)) {
+                if (exif == null || putExifData(mDestinationFile, exif, bitmap, quality)) {
                     putPanoramaXMPData(mDestinationFile, xmp);
                     // mDestinationFile will save the newSourceUri info in the XMP.
                     if (!flatten) {
@@ -673,7 +681,7 @@ public class SaveImage {
         // In the case of incoming Uri is just a local file Uri (like a cached
         // file), we can't just update the Uri. We have to create a new Uri.
         boolean fileUri = isFileUri(sourceUri);
-
+		
         if (fileUri || oldSelectedFile == null || !deleteOriginal) {
             result = context.getContentResolver().insert(
                     Images.Media.EXTERNAL_CONTENT_URI, values);

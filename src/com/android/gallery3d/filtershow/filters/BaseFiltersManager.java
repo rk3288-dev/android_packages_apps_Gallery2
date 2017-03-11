@@ -18,11 +18,14 @@ package com.android.gallery3d.filtershow.filters;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.util.ConfigUtil;
 import android.util.Log;
 
 import com.android.gallery3d.R;
 import com.android.gallery3d.filtershow.pipeline.ImagePreset;
 
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.BitmapDrawable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
@@ -107,6 +110,23 @@ public abstract class BaseFiltersManager implements FiltersManagerInterface {
         }
     }
 
+    public void freeFiltersBitmap() {
+        for (Class c : mFilters.keySet()) {
+            ImageFilter filter = mFilters.get(c);
+            if (filter != null && filter instanceof ImageFilterBorder) {
+                HashMap<Integer, Drawable> mDrawables = ((ImageFilterBorder) filter).getDrawables();
+                for (int d : mDrawables.keySet()) {
+                    Drawable drawable = mDrawables.get(d);
+                    if (drawable != null && drawable instanceof BitmapDrawable) {
+                        if (((BitmapDrawable) drawable).getBitmap() != null) {
+                            ((BitmapDrawable) drawable).getBitmap().recycle();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public void freeRSFilterScripts() {
         for (Class c : mFilters.keySet()) {
             ImageFilter filter = mFilters.get(c);
@@ -127,8 +147,12 @@ public abstract class BaseFiltersManager implements FiltersManagerInterface {
         filters.add(ImageFilterShadows.class);
         filters.add(ImageFilterHighlights.class);
         filters.add(ImageFilterVibrance.class);
-        filters.add(ImageFilterSharpen.class);
-        filters.add(ImageFilterCurves.class);
+        if(ConfigUtil.SUPPORT_IMAGE_FILTER_SHARPEN){
+        	filters.add(ImageFilterSharpen.class);
+        }
+        if(ConfigUtil.SUPPORT_IMAGE_FILTER_CURVES){
+        	filters.add(ImageFilterCurves.class);
+        }
         filters.add(ImageFilterDraw.class);
         filters.add(ImageFilterHue.class);
         filters.add(ImageFilterChanSat.class);
@@ -172,7 +196,8 @@ public abstract class BaseFiltersManager implements FiltersManagerInterface {
                 "FRAME_WHITE",
                 "FRAME_WHITE_ROUNDED",
                 "FRAME_CREAM",
-                "FRAME_CREAM_ROUNDED"
+                "FRAME_CREAM_ROUNDED",
+                "CUSTOM"
         };
 
         // The "no border" implementation
@@ -219,6 +244,9 @@ public abstract class BaseFiltersManager implements FiltersManagerInterface {
 
         rep = new FilterColorBorderRepresentation(creamColor, mImageBorderSize,
                 mImageBorderSize);
+        borderList.add(rep);
+        
+        rep = new FilterColorBorderRepresentation(creamColor, mImageBorderSize, 0,FilterRepresentation.TYPE_USE_EDITORCOLORBORDER);
         borderList.add(rep);
 
         for (FilterRepresentation filter : borderList) {
@@ -267,10 +295,10 @@ public abstract class BaseFiltersManager implements FiltersManagerInterface {
                 "LUT3D_XPROCESS"
         };
 
-        FilterFxRepresentation nullFx =
-                new FilterFxRepresentation(context.getString(R.string.none),
-                        0, R.string.none);
-        mLooks.add(nullFx);
+//        FilterFxRepresentation nullFx =
+//                new FilterFxRepresentation(context.getString(R.string.none),
+//                        0, R.string.none);
+//        mLooks.add(nullFx);
 
         for (int i = 0; i < drawid.length; i++) {
             FilterFxRepresentation fx = new FilterFxRepresentation(
@@ -295,8 +323,12 @@ public abstract class BaseFiltersManager implements FiltersManagerInterface {
         mEffects.add(getRepresentation(ImageFilterShadows.class));
         mEffects.add(getRepresentation(ImageFilterHighlights.class));
         mEffects.add(getRepresentation(ImageFilterVibrance.class));
-        mEffects.add(getRepresentation(ImageFilterSharpen.class));
-        mEffects.add(getRepresentation(ImageFilterCurves.class));
+        if(ConfigUtil.SUPPORT_IMAGE_FILTER_SHARPEN){
+        	mEffects.add(getRepresentation(ImageFilterSharpen.class));
+        }
+        if(ConfigUtil.SUPPORT_IMAGE_FILTER_CURVES){
+        	mEffects.add(getRepresentation(ImageFilterCurves.class));
+        }
         mEffects.add(getRepresentation(ImageFilterHue.class));
         mEffects.add(getRepresentation(ImageFilterChanSat.class));
         mEffects.add(getRepresentation(ImageFilterBwFilter.class));

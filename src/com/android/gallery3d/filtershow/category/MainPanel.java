@@ -177,7 +177,7 @@ public class MainPanel extends Fragment {
         if (mCurrentSelected == GEOMETRY) {
             return;
         }
-        if (MasterImage.getImage().hasTinyPlanet()) {
+        if (MasterImage.getImage() == null || MasterImage.getImage().getPreset() == null || MasterImage.getImage().hasTinyPlanet()) {
             return;
         }
         boolean fromRight = isRightAnimation(GEOMETRY);
@@ -293,6 +293,6 @@ public class MainPanel extends Fragment {
         }
         mCurrentSelected = -1;
         showPanel(currentPanel);
-        transaction.commit();
+        transaction.commitAllowingStateLoss();
     }
 }

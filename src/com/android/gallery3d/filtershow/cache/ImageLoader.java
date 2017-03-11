@@ -82,14 +82,26 @@ public final class ImageLoader {
     }
 
     public static String getLocalPathFromUri(Context context, Uri uri) {
-        Cursor cursor = context.getContentResolver().query(uri,
-                new String[]{MediaStore.Images.Media.DATA}, null, null, null);
-        if (cursor == null) {
+        String result = null;
+        try {
+            Cursor cursor = context.getContentResolver().query(uri,
+                    new String[]{MediaStore.Images.Media.DATA}, null, null, null);
+            if (cursor == null) {
+                return null;
+            }
+            int index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            if(cursor.moveToFirst()){
+                result =  cursor.getString(index);
+            }
+            if(cursor != null){
+                cursor.close();
+                cursor = null;
+            }
+        }catch (NullPointerException e) {
+            Log.e(LOGTAG, "error happen: the uri maybe null");
             return null;
         }
-        int index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        return cursor.getString(index);
+        return result;
     }
 
     /**

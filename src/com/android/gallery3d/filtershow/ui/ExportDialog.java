@@ -33,6 +33,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.android.gallery3d.R;
+import com.android.gallery3d.app.Log;
 import com.android.gallery3d.filtershow.FilterShowActivity;
 import com.android.gallery3d.filtershow.imageshow.MasterImage;
 import com.android.gallery3d.filtershow.pipeline.ImagePreset;
@@ -106,6 +107,10 @@ public class ExportDialog extends DialogFragment implements View.OnClickListener
         mEstimatedSize = (TextView) view.findViewById(R.id.estimadedSize);
 
         mOriginalBounds = MasterImage.getImage().getOriginalBounds();
+        if(null == mOriginalBounds){
+            Log.e("ExportDialog","error happen: mOriginalBounds is null");
+            return view;
+        }
         ImagePreset preset = MasterImage.getImage().getPreset();
         mOriginalBounds = preset.finalGeometryRect(mOriginalBounds.width(),
                 mOriginalBounds.height());
@@ -244,5 +249,4 @@ public class ExportDialog extends DialogFragment implements View.OnClickListener
         updateSize();
         mEditing = false;
     }
-
 }

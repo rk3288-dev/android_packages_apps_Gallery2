@@ -51,4 +51,9 @@ public class BitmapTexture extends UploadedTexture {
     public Bitmap getBitmap() {
         return mContentBitmap;
     }
+
+    @Override
+    public void recycle() {
+        super.recycle();
+    }
 }

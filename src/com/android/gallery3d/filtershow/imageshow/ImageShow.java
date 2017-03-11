@@ -256,9 +256,14 @@ public class ImageShow extends View implements OnGestureListener,
         mPaint.reset();
         mPaint.setAntiAlias(true);
         mPaint.setFilterBitmap(true);
-        MasterImage.getImage().setImageShowSize(
-                getWidth() - 2*mShadowMargin,
-                getHeight() - 2*mShadowMargin);
+        try {
+            MasterImage.getImage().setImageShowSize(
+                    getWidth() - 2*mShadowMargin,
+                    getHeight() - 2*mShadowMargin);
+        }catch (NullPointerException e){
+            Log.e(VIEW_LOG_TAG,"error happen: ondraw is null");
+            return;
+        }
 
         MasterImage img = MasterImage.getImage();
         // Hide the loading indicator as needed
@@ -288,7 +293,7 @@ public class ImageShow extends View implements OnGestureListener,
             drawImageAndAnimate(canvas, highresPreview);
         }
 
-        drawHighresImage(canvas, fullHighres);
+//        drawHighresImage(canvas, fullHighres);
         drawCompareImage(canvas, getGeometryOnlyImage());
 
         canvas.restore();

@@ -34,7 +34,6 @@ import com.android.gallery3d.filtershow.filters.FiltersManager;
 import com.android.gallery3d.filtershow.filters.ImageFilter;
 import com.android.gallery3d.filtershow.imageshow.MasterImage;
 import com.android.gallery3d.filtershow.tools.SaveImage;
-
 import java.io.File;
 
 public class ProcessingService extends Service {
@@ -184,6 +183,66 @@ public class ProcessingService extends Service {
     public void onDestroy() {
         tearDownPipeline();
         mProcessingTaskController.quit();
+        freeBitmapResource();
+        if (mUpdatePreviewTask != null) {
+            if (mUpdatePreviewTask.getPreviewPipeline() != null) {
+                if (mUpdatePreviewTask.getPreviewPipeline().getmFiltersManager() != null) {
+                    mUpdatePreviewTask.getPreviewPipeline().getmFiltersManager().freeFiltersBitmap();
+                }
+            }
+        }
+    }
+
+    private void freeBitmapResource() {
+        if (mHighresRenderingRequestTask != null) {
+            if (mHighresRenderingRequestTask.getHighresPreviewPipeline() != null) {
+                if (mHighresRenderingRequestTask.getHighresPreviewPipeline().getmOriginalBitmap() != null) {
+                    mHighresRenderingRequestTask.getHighresPreviewPipeline().getmOriginalBitmap().recycle();
+                }
+                if (mHighresRenderingRequestTask.getHighresPreviewPipeline().getmResizedOriginalBitmap() != null) {
+                    mHighresRenderingRequestTask.getHighresPreviewPipeline().getmResizedOriginalBitmap().recycle();
+                }
+                if (mHighresRenderingRequestTask.getHighresPreviewPipeline().getmFiltersManager() != null) {
+                    mHighresRenderingRequestTask.getHighresPreviewPipeline().getmFiltersManager().freeFiltersBitmap();
+                }
+            }
+        }
+        if (mUpdatePreviewTask != null) {
+            if (mUpdatePreviewTask.getPreviewPipeline() != null) {
+                if (mUpdatePreviewTask.getPreviewPipeline().getmOriginalBitmap() != null) {
+                    mUpdatePreviewTask.getPreviewPipeline().getmOriginalBitmap().recycle();
+                }
+                if (mUpdatePreviewTask.getPreviewPipeline().getmResizedOriginalBitmap() != null) {
+                    mUpdatePreviewTask.getPreviewPipeline().getmResizedOriginalBitmap().recycle();
+                }
+            }
+        }
+        if (mFullresRenderingRequestTask != null) {
+            if (mFullresRenderingRequestTask.getFullresPipeline() != null) {
+                if (mFullresRenderingRequestTask.getFullresPipeline().getmOriginalBitmap() != null) {
+                    mFullresRenderingRequestTask.getFullresPipeline().getmOriginalBitmap().recycle();
+                }
+                if (mFullresRenderingRequestTask.getFullresPipeline().getmResizedOriginalBitmap() != null) {
+                    mFullresRenderingRequestTask.getFullresPipeline().getmResizedOriginalBitmap().recycle();
+                }
+                if (mFullresRenderingRequestTask.getFullresPipeline().getmFiltersManager() != null) {
+                    mFullresRenderingRequestTask.getFullresPipeline().getmFiltersManager().freeFiltersBitmap();
+                }
+            }
+        }
+        if (mRenderingRequestTask != null) {
+            if (mRenderingRequestTask.getPreviewPipeline() != null) {
+                if (mRenderingRequestTask.getPreviewPipeline().getmOriginalBitmap() != null) {
+                    mRenderingRequestTask.getPreviewPipeline().getmOriginalBitmap().recycle();
+                }
+                if (mRenderingRequestTask.getPreviewPipeline().getmResizedOriginalBitmap() != null) {
+                    mRenderingRequestTask.getPreviewPipeline().getmResizedOriginalBitmap().recycle();
+                }
+                if (mRenderingRequestTask.getPreviewPipeline().getmFiltersManager() != null) {
+                    mRenderingRequestTask.getPreviewPipeline().getmFiltersManager().freeFiltersBitmap();
+                }
+            }
+        }
     }
 
     @Override
@@ -288,6 +347,7 @@ public class ProcessingService extends Service {
         if (mNeedsAlive) {
             // If the app has been restarted while we were saving...
             mFiltershowActivity.updateUIAfterServiceStarted();
+            freeBitmapResource();
         } else if (exit || mFiltershowActivity.isSimpleEditAction()) {
             // terminate now
             mFiltershowActivity.completeSaveImage(result);

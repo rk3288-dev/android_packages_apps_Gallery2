@@ -31,6 +31,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.android.gallery3d.R;
+import com.android.gallery3d.app.Log;
 import com.android.gallery3d.exif.ExifInterface;
 import com.android.gallery3d.exif.ExifTag;
 import com.android.gallery3d.filtershow.cache.ImageLoader;
@@ -92,7 +93,12 @@ public class InfoPanel extends DialogFragment {
             mImageName.setText(localUri.getLastPathSegment());
         }
         Rect originalBounds = MasterImage.getImage().getOriginalBounds();
-        mImageSize.setText("" + originalBounds.width() + " x " + originalBounds.height());
+        if(null == originalBounds){
+            mImageSize.setText("" + 0 + " x " + 0);
+            Log.e(FRAGMENT_TAG,"error happen: the originalBounds is null");
+        }else{
+            mImageSize.setText("" + originalBounds.width() + " x " + originalBounds.height());
+        }
 
         List<ExifTag> exif = MasterImage.getImage().getEXIF();
         String exifString = "";
